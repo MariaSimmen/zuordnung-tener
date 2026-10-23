@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fffcf3">
+<title>Une correctamente – Tener</title>
+<style>
+:root{--paper:#fffcf3;--ink:#303644;--muted:#777064;--line:#d8d3c8;--yellow:#ffdc45;--green:#dff2e2;--red:#f9e1dc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+header{padding:20px clamp(16px,4vw,44px);background:#fff;border-bottom:1px solid #e8e1d3}
+h1{font-size:clamp(1.3rem,3vw,1.8rem);font-weight:600;margin:0 0 5px}
+header p{margin:0;color:var(--muted)}
+main{max-width:900px;margin:0 auto;padding:clamp(16px,4vw,36px)}
+.instructions{margin:0 0 18px;color:#5d5b54}
+.board{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(18px,7vw,76px);isolation:isolate}
+.column{display:flex;flex-direction:column;gap:10px;z-index:2}
+.column-title{font-size:.76rem;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:0 0 2px}
+.item{position:relative;width:100%;min-height:58px;padding:12px 10px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);font:inherit;font-size:clamp(.94rem,2.4vw,1.08rem);cursor:pointer;touch-action:manipulation;transition:background .12s,border-color .12s,transform .12s}
+.item:focus-visible,.action:focus-visible{outline:3px solid #b48c00;outline-offset:3px}
+.item.selected{background:#ffe58a;border:2px solid #c79a0b;padding:11px 9px}
+.item.connected{background:#f0ede5}
+.item.correct{background:var(--green);border-color:#91c59a}
+.item.incorrect{background:var(--red);border-color:#dfa198}
+#lines{position:absolute;inset:0;width:100%;height:100%;z-index:1;overflow:visible;pointer-events:none}
+path.connector{fill:none;stroke:#a6a092;stroke-width:3;stroke-linecap:round}
+path.connector.good{stroke:#399653}
+path.connector.bad{stroke:#d46c5c}
+path.connector.active{stroke:#c79a0b;stroke-dasharray:5 5}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.action{border:1px solid var(--line);border-radius:999px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer;background:#fff;color:var(--ink);min-height:46px}
+.action.primary{background:var(--yellow);border-color:var(--yellow)}
+.action:hover{filter:brightness(.98)}
+#feedback{margin-top:16px;padding:14px 16px;border-radius:13px;background:#fff0d2;display:none;line-height:1.45}
+#feedback.show{display:block}
+#feedback.good{background:var(--green)}
+#solutions{display:none;margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+#solutions.show{display:block}
+.solution-row{display:flex;gap:14px;padding:6px 0}
+.solution-row strong{min-width:88px}
+.small{font-size:.88rem;color:var(--muted);line-height:1.45;margin-top:16px}
+@media(max-width:480px){.board{gap:12px}.item{min-height:56px;padding:10px 6px;font-size:.91rem;border-radius:11px}.item.selected{padding:9px 5px}.actions{display:grid;grid-template-columns:1fr 1fr}.action{padding:11px 9px;font-size:.9rem}.action.primary{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Une correctamente.</h1>
+  <p>Spanisch · Verbo <em>tener</em> · Zuordnungsübung</p>
+</header>
+<main>
+  <p class="instructions">Tippe zuerst links auf eine spanische Form und danach rechts auf die passende deutsche Übersetzung. Die Verbindung wird als Linie angezeigt.</p>
+  <section class="board" id="board" aria-label="Zuordnungsübung">
+    <svg id="lines" aria-hidden="true"></svg>
+    <div class="column" id="spanishCol">
+      <p class="column-title">ESPAÑOL</p>
+      <button class="item" data-side="es" data-id="tienes">tienes</button>
+      <button class="item" data-side="es" data-id="tengo">tengo</button>
+      <button class="item" data-side="es" data-id="teneis">tenéis</button>
+      <button class="item" data-side="es" data-id="tiene">tiene</button>
+      <button class="item" data-side="es" data-id="tenemos">tenemos</button>
+      <button class="item" data-side="es" data-id="tienen">tienen</button>
+    </div>
+    <div class="column" id="germanCol">
+      <p class="column-title">DEUTSCH</p>
+      <button class="item" data-side="de" data-id="ihr">ihr habt</button>
+      <button class="item" data-side="de" data-id="sie">sie haben</button>
+      <button class="item" data-side="de" data-id="ich">ich habe</button>
+      <button class="item" data-side="de" data-id="du">du hast</button>
+      <button class="item" data-side="de" data-id="wir">wir haben</button>
+      <button class="item" data-side="de" data-id="er">er/sie hat</button>
+    </div>
+  </section>
+  <div class="actions">
+    <button class="action primary" id="check">Lösung überprüfen</button>
+    <button class="action" id="show">Lösung zeigen</button>
+    <button class="action" id="reset">Neu starten</button>
+  </div>
+  <div id="feedback" role="status" aria-live="polite"></div>
+  <div id="solutions">
+    <strong>Lösungen</strong>
+    <div class="solution-row"><strong>tienes</strong><span>du hast</span></div>
+    <div class="solution-row"><strong>tengo</strong><span>ich habe</span></div>
+    <div class="solution-row"><strong>tenéis</strong><span>ihr habt</span></div>
+    <div class="solution-row"><strong>tiene</strong><span>er/sie hat</span></div>
+    <div class="solution-row"><strong>tenemos</strong><span>wir haben</span></div>
+    <div class="solution-row"><strong>tienen</strong><span>sie haben</span></div>
+  </div>
+  <p class="small">Tipp: Wenn du eine Zuordnung ändern möchtest, tippe links erneut auf eine spanische Form und wähle rechts eine andere Übersetzung.</p>
+</main>
+<script>
+(() => {
+  const correct = {tienes:"du",tengo:"ich",teneis:"ihr",tiene:"er",tenemos:"wir",tienen:"sie"};
+  const words = {ihr:"ihr habt",sie:"sie haben",ich:"ich habe",du:"du hast",wir:"wir haben",er:"er/sie hat"};
+  const board = document.getElementById("board"), svg = document.getElementById("lines");
+  const feedback = document.getElementById("feedback"), solutions = document.getElementById("solutions");
+  let selected = null, pairs = {}, checked = false, showing = false;
+  const buttons = [...document.querySelectorAll(".item")];
+  function getButton(side,id){return buttons.find(b=>b.dataset.side===side&&b.dataset.id===id)}
+  function clearStates(){buttons.forEach(b=>b.classList.remove("selected","correct","incorrect"));buttons.forEach(b=>{if(Object.values(pairs).includes(b.dataset.id)&&b.dataset.side==="de")b.classList.add("connected")})}
+  function render(){
+    svg.innerHTML="";
+    const br=board.getBoundingClientRect();
+    svg.setAttribute("viewBox",`0 0 ${br.width} ${br.height}`);
+    Object.entries(pairs).forEach(([es,de])=>{
+      const a=getButton("es",es),b=getButton("de",de); if(!a||!b)return;
+      const ar=a.getBoundingClientRect(),rr=b.getBoundingClientRect();
+      const x1=ar.right-br.left,y1=ar.top+ar.height/2-br.top;
+      const x2=rr.left-br.left,y2=rr.top+rr.height/2-br.top;
+      const mid=(x1+x2)/2;
+      const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d",`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
+      path.setAttribute("class","connector"+(checked?(correct[es]===de?" good":" bad"):""));
+      svg.appendChild(path);
+    });
+    if(selected){
+      const a=getButton("es",selected);
+      if(a){const ar=a.getBoundingClientRect(),x1=ar.right-br.left,y1=ar.top+ar.height/2-br.top;
+        const x2=br.width/2,y2=y1;
+        const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+        p.setAttribute("d",`M ${x1} ${y1} L ${x2} ${y2}`);p.setAttribute("class","connector active");svg.appendChild(p);}
+    }
+  }
+  function refresh(){
+    buttons.forEach(b=>{b.classList.remove("selected","connected","correct","incorrect");});
+    if(selected)getButton("es",selected)?.classList.add("selected");
+    Object.entries(pairs).forEach(([es,de])=>{
+      getButton("es",es)?.classList.add("connected");getButton("de",de)?.classList.add("connected");
+      if(checked){const cls=correct[es]===de?"correct":"incorrect";getButton("es",es)?.classList.add(cls);getButton("de",de)?.classList.add(cls)}
+    });
+    render();
+  }
+  buttons.forEach(b=>b.addEventListener("click",()=>{
+    const {side,id}=b.dataset;
+    feedback.className="";feedback.textContent="";checked=false;showing=false;solutions.classList.remove("show");
+    if(side==="es"){selected=id;refresh();return}
+    if(selected){
+      // Each German option can only be used once; remove its old assignment first.
+      Object.keys(pairs).forEach(k=>{if(pairs[k]===id)delete pairs[k]});
+      pairs[selected]=id;selected=null;refresh();
+    }else{
+      feedback.textContent="Wähle zuerst links eine spanische Form aus.";feedback.className="show";
+    }
+  }));
+  document.getElementById("check").addEventListener("click",()=>{
+    checked=true;selected=null;refresh();
+    const count=Object.entries(pairs).filter(([es,de])=>correct[es]===de).length;
+    feedback.textContent=`${count} von 6 richtig.${Object.keys(pairs).length<6?" Es fehlen noch Zuordnungen.":count===6?" ¡Excelente! Alle Zuordnungen sind korrekt.":" Prüfe die roten Zuordnungen."}`;
+    feedback.className="show"+(count===6&&Object.keys(pairs).length===6?" good":"");
+  });
+  document.getElementById("show").addEventListener("click",()=>{
+    showing=!showing;solutions.classList.toggle("show",showing);
+    if(showing){pairs={...correct};selected=null;checked=true;refresh();feedback.textContent="Die richtigen Zuordnungen werden angezeigt.";feedback.className="show good"}
+  });
+  document.getElementById("reset").addEventListener("click",()=>{
+    pairs={};selected=null;checked=false;showing=false;feedback.className="";feedback.textContent="";solutions.classList.remove("show");refresh();
+  });
+  window.addEventListener("resize",render);
+  if("ResizeObserver" in window)new ResizeObserver(render).observe(board);
+  refresh();
+})();
+</script>
+</body>
+</html>
