@@ -35,12 +35,13 @@ path.connector.active{stroke:#c79a0b;stroke-dasharray:5 5}
 #feedback{margin-top:16px;padding:14px 16px;border-radius:13px;background:#fff0d2;display:none;line-height:1.45}
 #feedback.show{display:block}
 #feedback.good{background:var(--green)}
+#learningBox{display:none;margin-top:14px;padding:16px;background:#fff;border:2px solid #e3bd42;border-radius:15px;box-shadow:0 5px 18px #46370a14}#learningBox.show{display:block}.learning-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.learning-head p{margin:5px 0 12px;color:var(--muted);font-size:.92rem;line-height:1.4}#closeLearning{border:0;background:#f4f0e5;border-radius:50%;width:34px;height:34px;font-size:1.4rem;cursor:pointer;color:var(--ink);flex:0 0 auto}.conjugation{display:grid;gap:6px}.conj-row{display:grid;grid-template-columns:minmax(90px,1.1fr) minmax(68px,.7fr) minmax(110px,1.4fr);gap:8px;align-items:center;padding:9px 10px;border-radius:9px;background:#faf8f1;font-size:.94rem}.conj-row span:nth-child(2){font-weight:700;color:#725b00}.learning-tip{margin:12px 0 0;color:#5d5b54;font-size:.9rem;line-height:1.45}
 #solutions{display:none;margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 16px}
 #solutions.show{display:block}
 .solution-row{display:flex;gap:14px;padding:6px 0}
 .solution-row strong{min-width:88px}
 .small{font-size:.88rem;color:var(--muted);line-height:1.45;margin-top:16px}
-@media(max-width:480px){.board{gap:12px}.item{min-height:56px;padding:10px 6px;font-size:.91rem;border-radius:11px}.item.selected{padding:9px 5px}.actions{display:grid;grid-template-columns:1fr 1fr}.action{padding:11px 9px;font-size:.9rem}.action.primary{grid-column:1/-1}}
+@media(max-width:480px){.conj-row{grid-template-columns:minmax(76px,1fr) minmax(55px,.65fr) minmax(92px,1.25fr);gap:5px;padding:8px 6px;font-size:.82rem}.learning-head p{font-size:.86rem}.board{gap:12px}.item{min-height:56px;padding:10px 6px;font-size:.91rem;border-radius:11px}.item.selected{padding:9px 5px}.actions{display:grid;grid-template-columns:1fr 1fr}.action{padding:11px 9px;font-size:.9rem}.action.primary{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -78,6 +79,7 @@ path.connector.active{stroke:#c79a0b;stroke-dasharray:5 5}
     <button class="action" id="reset">Neu starten</button>
   </div>
   <div id="feedback" role="status" aria-live="polite"></div>
+<section id="learningBox" aria-live="polite" aria-label="Lernhilfe: Konjugation von tener"><div class="learning-head"><div><strong>Schau dir die ganze Konjugation an.</strong><p>Vergleiche die Person im Deutschen mit der passenden Form von <em>tener</em>.</p></div><button type="button" id="closeLearning" aria-label="Lernhilfe schließen">×</button></div><div class="conjugation"><div class="conj-row"><strong>yo</strong><span>tengo</span><span>ich habe</span></div><div class="conj-row"><strong>tú</strong><span>tienes</span><span>du hast</span></div><div class="conj-row"><strong>él / ella</strong><span>tiene</span><span>er / sie hat</span></div><div class="conj-row"><strong>nosotros/as</strong><span>tenemos</span><span>wir haben</span></div><div class="conj-row"><strong>vosotros/as</strong><span>tenéis</span><span>ihr habt</span></div><div class="conj-row"><strong>ellos / ellas</strong><span>tienen</span><span>sie haben</span></div></div><p class="learning-tip">Merke: <strong>tener</strong> ist unregelmäßig. Besonders wichtig sind <strong>tengo</strong>, <strong>tienes</strong>, <strong>tiene</strong> und <strong>tienen</strong>.</p></section>
   <div id="solutions">
     <strong>Lösungen</strong>
     <div class="solution-row"><strong>tienes</strong><span>du hast</span></div>
@@ -94,7 +96,7 @@ path.connector.active{stroke:#c79a0b;stroke-dasharray:5 5}
   const correct = {tienes:"du",tengo:"ich",teneis:"ihr",tiene:"er",tenemos:"wir",tienen:"sie"};
   const words = {ihr:"ihr habt",sie:"sie haben",ich:"ich habe",du:"du hast",wir:"wir haben",er:"er/sie hat"};
   const board = document.getElementById("board"), svg = document.getElementById("lines");
-  const feedback = document.getElementById("feedback"), solutions = document.getElementById("solutions");
+  const feedback = document.getElementById("feedback"), solutions = document.getElementById("solutions"), learning = document.getElementById("learningBox");
   let selected = null, pairs = {}, checked = false, showing = false;
   const buttons = [...document.querySelectorAll(".item")];
   function getButton(side,id){return buttons.find(b=>b.dataset.side===side&&b.dataset.id===id)}
@@ -136,26 +138,28 @@ path.connector.active{stroke:#c79a0b;stroke-dasharray:5 5}
     feedback.className="";feedback.textContent="";checked=false;showing=false;solutions.classList.remove("show");
     if(side==="es"){selected=id;refresh();return}
     if(selected){
-      // Each German option can only be used once; remove its old assignment first.
+      const es=selected;
       Object.keys(pairs).forEach(k=>{if(pairs[k]===id)delete pairs[k]});
-      pairs[selected]=id;selected=null;refresh();
-    }else{
-      feedback.textContent="Wähle zuerst links eine spanische Form aus.";feedback.className="show";
-    }
+      pairs[es]=id;selected=null;refresh();
+      if(correct[es]!==id){learning.classList.add("show");feedback.textContent="Das passt noch nicht ganz. Nutze die Konjugationstabelle als Hilfe und ordne dann weiter zu.";feedback.className="show";}
+      else{learning.classList.remove("show");feedback.textContent="Richtig zugeordnet! Weiter so.";feedback.className="show good";}
+    }else{feedback.textContent="Wähle zuerst links eine spanische Form aus.";feedback.className="show";}
   }));
   document.getElementById("check").addEventListener("click",()=>{
     checked=true;selected=null;refresh();
     const count=Object.entries(pairs).filter(([es,de])=>correct[es]===de).length;
+    if(count===Object.keys(pairs).length&&Object.keys(pairs).length>0)learning.classList.remove("show");else if(Object.keys(pairs).length>0)learning.classList.add("show");
     feedback.textContent=`${count} von 6 richtig.${Object.keys(pairs).length<6?" Es fehlen noch Zuordnungen.":count===6?" ¡Excelente! Alle Zuordnungen sind korrekt.":" Prüfe die roten Zuordnungen."}`;
     feedback.className="show"+(count===6&&Object.keys(pairs).length===6?" good":"");
   });
   document.getElementById("show").addEventListener("click",()=>{
     showing=!showing;solutions.classList.toggle("show",showing);
-    if(showing){pairs={...correct};selected=null;checked=true;refresh();feedback.textContent="Die richtigen Zuordnungen werden angezeigt.";feedback.className="show good"}
+    if(showing){pairs={...correct};selected=null;checked=true;learning.classList.remove("show");refresh();feedback.textContent="Die richtigen Zuordnungen werden angezeigt.";feedback.className="show good"}
   });
   document.getElementById("reset").addEventListener("click",()=>{
-    pairs={};selected=null;checked=false;showing=false;feedback.className="";feedback.textContent="";solutions.classList.remove("show");refresh();
+    pairs={};selected=null;checked=false;showing=false;feedback.className="";feedback.textContent="";solutions.classList.remove("show");learning.classList.remove("show");refresh();
   });
+  document.getElementById("closeLearning").addEventListener("click",()=>learning.classList.remove("show"));
   window.addEventListener("resize",render);
   if("ResizeObserver" in window)new ResizeObserver(render).observe(board);
   refresh();
